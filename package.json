@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "bin": {
-    "zhu": "./bin/zhu"
+    "zhu": "./bin/zhu",
+    "opet": "./bin/opet"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

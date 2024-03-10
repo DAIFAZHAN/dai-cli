@@ -4,20 +4,9 @@
 // 1）配置可执行命令 commander
 const program = require('commander'); // 命令行
 const chalk = require('chalk'); // 颜色
+const { clearArgs } = require('../lib/util');
 
 // 核心功能 1.创建项目 2.更改配置文件 3.ui界面 @vue/ui
-
-// 格式化参数
-const clearArgs = (cmd) => {
-  const args = {};
-  cmd.options.forEach((o) => {
-    const key = o.long.slice(2);
-    if (cmd[key]) {
-      args[key] = cmd[key];
-    }
-  });
-  return args;
-};
 
 program
   .command('create <app-name>')

@@ -1,0 +1,137 @@
+#! D:\CodeProgramFiles\nodejs\node
+// #! /user/bin/env node
+
+const program = require('commander');
+const Inquirer = require('inquirer'); // 命令行交互
+let { exec } = require('child_process');
+const util = require('util');
+const { clearArgs } = require('../lib/util');
+exec = util.promisify(exec);
+
+// 操作git代理源
+program
+  .command('git')
+  .option('-g, --get')
+  .option('-s, --set')
+  .action(async (cmd) => {
+    const getStr = 'git config --global --get http.proxy';
+    if (cmd) {
+      const { get } = clearArgs(cmd);
+      if (get) {
+        try {
+          const res = await exec(getStr);
+          console.log(res.stdout);
+        } catch (e) {
+          console.log(null);
+        }
+        return;
+      }
+    }
+
+    let { action } = await Inquirer.prompt({
+      name: 'action',
+      type: 'list',
+      message: 'http proxy?',
+      choices: ['local', 'proxy'],
+    });
+    const setStr =
+      action === 'proxy'
+        ? 'git config --global http.proxy 127.0.0.1:7890'
+        : 'git config --global --unset http.proxy';
+
+    try {
+      const res = await exec(setStr);
+      console.log('result:\n', res);
+    } catch (error) {
+      console.log('error', error);
+    }
+  });
+
+// 操作npm仓库
+program
+  .command('npm [value]')
+  .option('-g, --get')
+  .option('-s, --set <type>')
+  .action(async (value, cmd) => {
+    const srcChoices = ['npm', 'taobao'];
+    const srcRepos = {
+      npm: 'npm config set registry=https://registry.npmjs.org/',
+      taobao: 'npm config set registry=https://registry.npmmirror.com/',
+    };
+
+    const proxyChoices = ['local', 'proxy'];
+    const proxyCmd = {
+      local: 'npm config delete proxy',
+      proxy: 'npm config set proxy=http://127.0.0.1:7890/',
+    };
+
+    const args = clearArgs(cmd);
+    if (Reflect.ownKeys(args).length) {
+      if ('get' in args) {
+        console.log();
+        console.log('proxy: ', (await exec('npm config get proxy')).stdout);
+        console.log('repo: ', (await exec('npm config get registry')).stdout);
+      }
+      if ('set' in args) {
+        if (args.set === 'local') {
+          await exec(proxyCmd['local']);
+          await exec(srcRepos['taobao']);
+        }
+        if (args.set === 'proxy') {
+          await exec(proxyCmd['proxy']);
+          await exec(srcRepos['npm']);
+        }
+      }
+      return;
+    } else {
+      const { proxyAction } = await Inquirer.prompt({
+        name: 'proxyAction',
+        type: 'list',
+        message: 'http proxy?',
+        choices: proxyChoices,
+      });
+      const { repoAction } = await Inquirer.prompt({
+        name: 'repoAction',
+        type: 'list',
+        message: 'repo?',
+        choices: srcChoices,
+      });
+      await exec(proxyCmd[proxyAction]);
+      await exec(srcRepos[repoAction]);
+    }
+
+    const getStr = 'git config --global --get http.proxy';
+    if (cmd) {
+      const { get } = clearArgs(cmd);
+      if (get) {
+        try {
+          const res = await exec(getStr);
+          console.log(res.stdout);
+        } catch (e) {
+          console.log(null);
+        }
+        return;
+      }
+    }
+
+    // let { action } = await Inquirer.prompt({
+    //   name: 'action',
+    //   type: 'list',
+    //   message: 'http proxy?',
+    //   choices: proxyChoices,
+    // });
+
+    // try {
+    //   const res = await exec(proxyCmd[action]);
+    //   console.log('result:\n', res);
+    //   console.log(await exec('npm config get proxy'));
+    // } catch (error) {
+    //   console.log('error', error);
+    // }
+  });
+
+program
+  .version(`zhufeng-cli@${require('../package.json').version}`)
+  .usage('<command> [option]');
+
+program.parse(process.argv);
